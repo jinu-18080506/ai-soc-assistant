@@ -18,7 +18,7 @@ Work in progress. Features are added one stage at a time and checked off below.
 
 - [x] Alert model and reader (load Wazuh-style alerts from JSON)
 - [x] Severity and MITRE ATT&CK mapping
-- [ ] AI threat analysis with structured output
+- [x] AI threat analysis with structured output
 - [ ] Markdown incident reports
 - [ ] Notifications (Telegram / email)
 - [ ] Pipeline entry point (`main.py`)
