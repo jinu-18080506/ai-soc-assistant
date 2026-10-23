@@ -17,7 +17,7 @@ Work in progress. Features are added one stage at a time and checked off below.
 ## Build plan
 
 - [x] Alert model and reader (load Wazuh-style alerts from JSON)
-- [ ] Severity and MITRE ATT&CK mapping
+- [x] Severity and MITRE ATT&CK mapping
 - [ ] AI threat analysis with structured output
 - [ ] Markdown incident reports
 - [ ] Notifications (Telegram / email)

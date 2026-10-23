@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .models import Alert
+from .severity import severity_for_level
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,11 @@ def main() -> None:
     alerts = read_alerts(sys.argv[1], min_level)
     print(f"{len(alerts)} alert(s) loaded\n")
     for alert in alerts:
+        severity = severity_for_level(alert.rule.level).value
         mitre = ", ".join(alert.rule.mitre.id) or "-"
         print(
-            f"[level {alert.rule.level:>2}] {alert.agent.name:<14} "
-            f"{mitre:<10} {alert.rule.description}"
+            f"[{severity:<8}] level {alert.rule.level:>2}  {alert.agent.name:<14} "
+            f"{mitre:<18} {alert.rule.description}"
         )
 
 
