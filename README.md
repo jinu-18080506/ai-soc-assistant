@@ -21,7 +21,7 @@ Work in progress. Features are added one stage at a time and checked off below.
 - [x] AI threat analysis with structured output
 - [x] Markdown incident reports
 - [ ] Notifications (Telegram / email)
-- [ ] Pipeline entry point (`main.py`)
+- [x] Pipeline entry point (`main.py`)
 - [ ] Streamlit dashboard
 
 ## Planned architecture
