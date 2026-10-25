@@ -9,6 +9,10 @@ import re
 from typing import Protocol
 
 
+class AIClientError(Exception):
+    """A real AI provider could not be reached or returned an error."""
+
+
 class AIClient(Protocol):
     def complete(self, prompt: str) -> str: ...
 

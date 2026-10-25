@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .ai.analyzer import AnalysisError, analyze_alert
-from .ai.client import AIClient
+from .ai.client import AIClient, AIClientError
 from .alert_reader import read_alerts
 from .report.markdown_report import write_report
 from .state import ProcessedStore
@@ -53,7 +53,7 @@ def run_pipeline(
         try:
             assessment = analyze_alert(alert, client)
             write_report(alert, assessment, out_dir)
-        except (AnalysisError, OSError) as error:
+        except (AnalysisError, AIClientError, OSError) as error:
             logger.error("Alert %s failed: %s", alert.id, error)
             result.failed += 1
             continue

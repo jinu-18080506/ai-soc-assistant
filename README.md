@@ -18,7 +18,7 @@ Work in progress. Features are added one stage at a time and checked off below.
 
 - [x] Alert model and reader (load Wazuh-style alerts from JSON)
 - [x] Severity and MITRE ATT&CK mapping
-- [x] AI threat analysis with structured output
+- [x] AI threat analysis with structured output (Gemini via am OpenAI-compatiblle API; mock AI for tests)
 - [x] Markdown incident reports
 - [ ] Notifications (Telegram / email)
 - [x] Pipeline entry point (`main.py`)
