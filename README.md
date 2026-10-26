@@ -141,6 +141,7 @@ Possible next steps: read live alerts from a Wazuh server, group related alerts,
 ## Screenshots
 
 ![Dashboard](docs/images/dashboard.png)
+![AI incident report](docs/images/dashboard-report.png)
 
 ## License
 
