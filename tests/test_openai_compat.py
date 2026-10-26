@@ -118,3 +118,17 @@ def test_bad_response_shapes_are_rejected(payload):
 def test_list_models_strips_prefix_and_sorts():
     payload = {"data": [{"id": "models/b-flash"}, {"id": "a-model"}]}
     assert make_client(FakeOpener(payload)).list_models() == ["a-model", "b-flash"]
+
+
+def test_connection_reset_is_retried_then_succeeds():
+    opener = FakeOpener(ConnectionResetError("forcibly closed"), GOOD)
+    client = make_client(opener)
+    assert client.complete("hi") == "hello"
+    assert len(client.sleeps) == 1
+
+
+def test_persistent_connection_reset_becomes_ai_client_error():
+    reset = ConnectionResetError("forcibly closed")
+    client = make_client(FakeOpener(reset, reset, reset))
+    with pytest.raises(AIClientError, match="Network error"):
+        client.complete("hi")

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+DEFAULT_NOTIFY_MIN_LEVEL = 8  # High and Critical
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,9 @@ class Settings:
     api_key: str = field(default="", repr=False)
     base_url: str = DEFAULT_BASE_URL
     model: str = ""
+    telegram_bot_token: str = field(default="", repr=False)
+    telegram_chat_id: str = ""
+    notify_min_level: int = DEFAULT_NOTIFY_MIN_LEVEL
 
 
 def parse_env_file(path: str | Path) -> dict[str, str]:
@@ -44,11 +48,19 @@ def load_settings(env_file: str | Path = ".env", environ=None) -> Settings:
     """Build Settings from the .env file, overridden by real environment variables."""
     environ = os.environ if environ is None else environ
     merged = {**parse_env_file(env_file)}
-    for name in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL"):
+    for name in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "TELEGRAM_BOT_TOKEN",
+                 "TELEGRAM_CHAT_ID", "NOTIFY_MIN_LEVEL"):
         if environ.get(name):
             merged[name] = environ[name]
+    try:
+        notify_min_level = int(merged.get("NOTIFY_MIN_LEVEL", "").strip())
+    except ValueError:
+        notify_min_level = DEFAULT_NOTIFY_MIN_LEVEL
     return Settings(
         api_key=merged.get("AI_API_KEY", "").strip(),
         base_url=merged.get("AI_BASE_URL", "").strip() or DEFAULT_BASE_URL,
         model=merged.get("AI_MODEL", "").strip(),
+        telegram_bot_token=merged.get("TELEGRAM_BOT_TOKEN", "").strip(),
+        telegram_chat_id=merged.get("TELEGRAM_CHAT_ID", "").strip(),
+        notify_min_level=notify_min_level,
     )

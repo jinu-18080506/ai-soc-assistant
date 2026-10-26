@@ -10,7 +10,8 @@ SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample_alerts.jsonl"
 @pytest.fixture(autouse=True)
 def clean_environment(monkeypatch):
     """Make sure a real key on this machine can never leak into the tests."""
-    for name in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL"):
+    for name in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "TELEGRAM_BOT_TOKEN",
+                 "TELEGRAM_CHAT_ID", "NOTIFY_MIN_LEVEL"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -57,3 +58,18 @@ def test_key_is_never_printed(tmp_path, monkeypatch, capsys):
     cli.main(args(tmp_path))
     out = capsys.readouterr()
     assert "super-secret-key-123" not in out.out + out.err
+
+
+def test_notify_without_telegram_settings_is_reported(tmp_path, capsys):
+    assert cli.main(args(tmp_path, "--mock", "--notify")) == 2
+    assert "TELEGRAM_BOT_TOKEN" in capsys.readouterr().out
+
+
+def test_notify_test_without_token_is_reported(tmp_path, capsys):
+    assert cli.main(args(tmp_path, "--notify-test")) == 2
+    assert "TELEGRAM_BOT_TOKEN is not set" in capsys.readouterr().out
+
+
+def test_find_chat_without_token_is_reported(tmp_path, capsys):
+    assert cli.main(args(tmp_path, "--telegram-find-chat")) == 2
+    assert "TELEGRAM_BOT_TOKEN is not set" in capsys.readouterr().out

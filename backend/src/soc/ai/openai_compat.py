@@ -62,7 +62,7 @@ class OpenAICompatClient:
                 last_error = f"HTTP {error.code}: {detail}"
                 if error.code not in RETRY_STATUS:
                     raise AIClientError(last_error) from None
-            except OSError as error:
+            except OSError as error:  # timeouts, resets, SSL and DNS problems
                 last_error = f"Network error: {self._scrub(str(error))}"
             except json.JSONDecodeError:
                 raise AIClientError("The AI service returned something that is not JSON") from None

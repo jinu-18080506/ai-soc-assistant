@@ -1,15 +1,18 @@
 """Command-line entry point: process new alerts into incident reports.
 
 Examples:
-    python main.py --dry-run          show what would be processed
-    python main.py --limit 2          process at most 2 new alerts
-    python main.py --min-level 8      only alerts at level 8 or above
-    python main.py --list-models      show the AI models your key can use
-    python main.py --mock             force the fake AI (no key needed)
+    python main.py --dry-run             show what would be processed
+    python main.py --limit 2             process at most 2 new alerts
+    python main.py --min-level 8         only alerts at level 8 or above
+    python main.py --list-models         show the AI models your key can use
+    python main.py --mock                force the fake AI (no key needed)
+    python main.py --notify              also send Telegram messages for High+ alerts
+    python main.py --telegram-find-chat  find your Telegram chat ID
+    python main.py --notify-test         send one test message
 
 With AI_API_KEY and AI_MODEL set in .env a real AI is used; otherwise the
-mock AI is used. Exit code is 0 on success, 1 if any alert failed, 2 if the
-AI settings are incomplete.
+mock AI is used. Exit code is 0 on success, 1 if any alert failed, 2 if a
+setting is missing.
 """
 
 import argparse
@@ -22,8 +25,36 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "backend" / "src"))
 from soc.ai.client import AIClientError, MockClient  # noqa: E402
 from soc.ai.openai_compat import OpenAICompatClient  # noqa: E402
 from soc.config import load_settings  # noqa: E402
+from soc.notify.base import NotifyError  # noqa: E402
+from soc.notify.telegram import TelegramNotifier  # noqa: E402
 from soc.pipeline import run_pipeline  # noqa: E402
 from soc.state import ProcessedStore  # noqa: E402
+
+
+def telegram_commands(args, settings) -> int | None:
+    """Handle the Telegram helper flags. Returns an exit code, or None to carry on."""
+    if not (args.telegram_find_chat or args.notify_test):
+        return None
+    if not settings.telegram_bot_token:
+        print("TELEGRAM_BOT_TOKEN is not set. Put it in .env first.")
+        return 2
+    notifier = TelegramNotifier(settings.telegram_bot_token, settings.telegram_chat_id)
+    try:
+        if args.telegram_find_chat:
+            chats = notifier.find_chats()
+            if not chats:
+                print("No chats found. Send any message to your bot in Telegram, then run this again.")
+                return 1
+            for chat_id, name in chats:
+                print(f"chat id {chat_id}   ({name})")
+            print("\nPut the number in .env as TELEGRAM_CHAT_ID=<number>")
+        else:
+            notifier.send("Test message from AI SOC Assistant. Notifications are working.")
+            print("Test message sent. Check Telegram.")
+    except NotifyError as error:
+        print(f"Telegram problem: {error}")
+        return 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,10 +68,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="show what would run, change nothing")
     parser.add_argument("--mock", action="store_true", help="use the fake AI even if a key is set")
     parser.add_argument("--list-models", action="store_true", help="list models for your key and exit")
+    parser.add_argument("--notify", action="store_true", help="send Telegram messages for High+ alerts")
+    parser.add_argument("--notify-min-level", type=int, default=None, help="lowest level to notify")
+    parser.add_argument("--telegram-find-chat", action="store_true", help="show your Telegram chat ID")
+    parser.add_argument("--notify-test", action="store_true", help="send one Telegram test message")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     settings = load_settings(args.env_file)
+
+    code = telegram_commands(args, settings)
+    if code is not None:
+        return code
 
     if args.list_models:
         if not settings.api_key:
@@ -56,6 +95,13 @@ def main(argv: list[str] | None = None) -> int:
         print("\nPick a name containing 'flash' and put it in .env as AI_MODEL=<name>")
         return 0
 
+    notifier = None
+    if args.notify:
+        if not (settings.telegram_bot_token and settings.telegram_chat_id):
+            print("--notify needs TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env")
+            return 2
+        notifier = TelegramNotifier(settings.telegram_bot_token, settings.telegram_chat_id)
+
     if args.mock or not settings.api_key:
         client = MockClient()
         print("Using the mock AI (reports are labelled [MOCK])")
@@ -66,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         client = OpenAICompatClient(settings.api_key, settings.base_url, settings.model)
         print(f"Using AI model: {settings.model}")
 
+    notify_level = args.notify_min_level if args.notify_min_level is not None else settings.notify_min_level
     result = run_pipeline(
         alerts_path=args.input,
         out_dir=args.out,
@@ -74,8 +121,12 @@ def main(argv: list[str] | None = None) -> int:
         min_level=args.min_level,
         limit=args.limit,
         dry_run=args.dry_run,
+        notifier=notifier,
+        notify_min_level=notify_level,
     )
     print(f"Processed {result.processed}, skipped {result.skipped}, failed {result.failed}")
+    if notifier is not None:
+        print(f"Notified {result.notified}, notification failures {result.notify_failed}")
     return 1 if result.failed else 0
 
 

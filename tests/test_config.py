@@ -45,3 +45,24 @@ def test_empty_value_falls_back_to_default_url(tmp_path):
 
 def test_api_key_hidden_from_repr():
     assert "secret" not in repr(Settings(api_key="secret"))
+
+
+def test_telegram_and_notify_settings(tmp_path):
+    file = write(
+        tmp_path / ".env",
+        "TELEGRAM_BOT_TOKEN=tok\nTELEGRAM_CHAT_ID=42\nNOTIFY_MIN_LEVEL=10\n",
+    )
+    settings = load_settings(file, environ={})
+    assert settings.telegram_bot_token == "tok"
+    assert settings.telegram_chat_id == "42"
+    assert settings.notify_min_level == 10
+
+
+def test_notify_level_defaults_when_missing_or_invalid(tmp_path):
+    assert load_settings(tmp_path / "nope.env", environ={}).notify_min_level == 8
+    file = write(tmp_path / ".env", "NOTIFY_MIN_LEVEL=high\n")
+    assert load_settings(file, environ={}).notify_min_level == 8
+
+
+def test_telegram_token_hidden_from_repr():
+    assert "tok123" not in repr(Settings(telegram_bot_token="tok123"))
